@@ -1,26 +1,10 @@
 import axios, { AxiosResponse } from 'axios'
+import { useCookies, useLoggingInterceptor } from './axios-utils.js'
 import { writeFile } from 'fs/promises'
 
 const baseUrl = 'https://futures.force.com'
 
-class CookieStore {
-  private cookies: Record<string, string> = {}
-
-  append(cookies: string[] | undefined): string {
-    if (cookies !== undefined) {
-      for (const cookie of cookies) {
-        const [name, value] = cookie.split(';')[0].split('=')
-        this.cookies[name] = value
-      }
-    }
-    return Object.entries(this.cookies)
-      .map(([n, v]) => `${n}=${v}`)
-      .join('; ')
-  }
-}
-
 export async function login(): Promise<void> {
-  const cookieStore = new CookieStore()
 
   const session = axios.create({
     baseURL: baseUrl,
@@ -31,11 +15,11 @@ export async function login(): Promise<void> {
     },
     responseType: 'text',
   })
+  useLoggingInterceptor(session)
+  useCookies(session)
 
   // request the login page
   const pageLogin = await session.get('/PortalLogin')
-  await writeFile('step-0-login.html', pageLogin.data, { encoding: 'utf8' })
-  session.defaults.headers.cookie = cookieStore.append(pageLogin.headers['set-cookie'])
   const ctxLogin = extractCtx(pageLogin, 'process')
 
   // perform the login
@@ -59,20 +43,17 @@ export async function login(): Promise<void> {
   const resLogin = await session.post(`/apexremote`, reqLogin, {
     headers: { referer: 'https://futures.force.com/PortalLogin' },
   })
-  await writeFile('step-1-login.json', resLogin.data, { encoding: 'utf8' })
-  session.defaults.headers.cookie = cookieStore.append(resLogin.headers['set-cookie'])
   const homeData = JSON.parse(resLogin.data)
   const url = homeData[0].result.data.string_result
+  if (!url) {
+    throw new Error('Authentication failed successfully') // seen this when my account is locked out b/c of too many login failures
+  }
 
   // request the page login redirects you to
   const pageHome1 = await session.get(url)
-  await writeFile('step-2-home1.html', pageHome1.data, { encoding: 'utf8' })
-  session.defaults.headers.cookie = cookieStore.append(pageHome1.headers['set-cookie'])
 
   // the login page sends you to a page that has a JavaScript-based redirect, follow it manually to /PortalHome
   const pageHome2 = await session.get('/PortalHome')
-  await writeFile('step-3-home2.html', pageHome2.data, { encoding: 'utf8' })
-  session.defaults.headers.cookie = cookieStore.append(pageHome2.headers['set-cookie'])
   const ctxQuery = extractCtx(pageHome2, 'query')
 
   // session schedule
@@ -95,7 +76,6 @@ export async function login(): Promise<void> {
   const resSchedule = await session.post(`/apexremote`, reqSchedule, {
     headers: { referer: 'https://futures.force.com/PortalHome' },
   })
-  await writeFile('step-4-schedule.json', resSchedule.data, { encoding: 'utf8' })
 
   const reqTests = {
     action: 'PortalController',
@@ -116,7 +96,6 @@ export async function login(): Promise<void> {
   const resTests = await session.post(`/apexremote`, reqTests, {
     headers: { referer: 'https://futures.force.com/PortalHome' },
   })
-  await writeFile('step-5-tests.json', resTests.data, { encoding: 'utf8' })
 
   function collapse(value: any, dict: Record<string, any>): any {
     if (typeof value === 'object' && value) {
