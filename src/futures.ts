@@ -1,8 +1,9 @@
 import axios, { AxiosResponse } from 'axios'
 import { useCookies, useLoggingInterceptor, useReferer } from './axios-utils.js'
-import { writeFile } from 'fs/promises'
 import { decodeApex } from './salesforce.js'
 import * as ics from 'ics'
+import { writeJSON } from './json.js'
+import { writeText } from './text.js'
 
 const baseUrl = 'https://futures.force.com'
 
@@ -118,13 +119,13 @@ export async function login(): Promise<void> {
   const sessions = (
     decodeApex(JSON.parse(resSchedule.data)) as any
   )[0].result.data.query_results.map(toSession)
-  await writeFile('sessions.json', JSON.stringify(sessions), { encoding: 'utf8' })
+  await writeJSON('sessions.json', sessions)
 
   const { error, value } = ics.createEvents(sessions)
   if (error) {
     throw error
   }
-  await writeFile('sessions.ics', value ?? '', { encoding: 'utf8' })
+  await writeText('sessions.ics', value ?? '')
 
   // const tests = JSON.parse(resTests.data)[0].result.data.query_results as ITest[]
 }

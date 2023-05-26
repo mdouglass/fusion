@@ -1,6 +1,6 @@
 import { AxiosInstance } from 'axios'
-import { writeFile } from 'fs/promises'
 import { writeJSON } from './json.js'
+import { writeText } from './text.js'
 
 export function useLoggingInterceptor(session: AxiosInstance): void {
   let requestId = 0
@@ -27,9 +27,7 @@ export function useLoggingInterceptor(session: AxiosInstance): void {
         : res.headers['content-type'].startsWith('text/html')
         ? 'html'
         : 'txt'
-      await writeFile(`request-${requestId}-response.${ext}`, res.data ?? '', {
-        encoding: 'utf8',
-      })
+      await writeText(`request-${requestId}-response.${ext}`, res.data ?? '')
       return res
     },
     async (error) => {
