@@ -11,13 +11,14 @@
     "start": "node ./dist/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "json-stable-stringify": "^1.0.2"
+  },
   "devDependencies": {
+    "@types/json-stable-stringify": "^1.0.34",
     "@types/node": "^20.2.3",
     "prettier": "^2.8.8",
     "typescript": "^5.0.4"
-  },
-  "dependencies": {
-    "axios": "^1.4.0",
-    "cheerio": "^1.0.0-rc.12"
   }
 }
