@@ -2,6 +2,7 @@ import axios, { AxiosResponse } from 'axios'
 import { useCookies, useLoggingInterceptor, useReferer } from './axios-utils.js'
 import { writeFile } from 'fs/promises'
 import { decodeApex } from './salesforce.js'
+import * as ics from 'ics'
 
 const baseUrl = 'https://futures.force.com'
 
@@ -93,11 +94,24 @@ export async function login(): Promise<void> {
   }
   const resTests = await session.post(`/apexremote`, reqTests)
 
-  function toSession(s: any): any {
+  function toSession(s: any): ics.EventAttributes {
+    const toDateArray = (ms: number) => {
+      const d = new Date(ms)
+      return [
+        d.getUTCFullYear(),
+        d.getUTCMonth() + 1,
+        d.getUTCDate(),
+        d.getUTCHours(),
+        d.getUTCMinutes(),
+      ] as [number, number, number, number, number]
+    }
+
     return {
-      course: s.Class__r.Course__r.Name,
-      start: new Date(s.Starting__c).toLocaleString(),
-      end: new Date(s.Ending__c).toLocaleString(),
+      title: s.Class__r.Course__r.Name,
+      start: toDateArray(s.Starting__c),
+      startInputType: 'utc',
+      end: toDateArray(s.Ending__c),
+      endInputType: 'utc',
     }
   }
 
@@ -105,6 +119,12 @@ export async function login(): Promise<void> {
     decodeApex(JSON.parse(resSchedule.data)) as any
   )[0].result.data.query_results.map(toSession)
   await writeFile('sessions.json', JSON.stringify(sessions), { encoding: 'utf8' })
+
+  const { error, value } = ics.createEvents(sessions)
+  if (error) {
+    throw error
+  }
+  await writeFile('sessions.ics', value ?? '', { encoding: 'utf8' })
 
   // const tests = JSON.parse(resTests.data)[0].result.data.query_results as ITest[]
 }
