@@ -1,31 +1,22 @@
 import { AxiosInstance } from 'axios'
 import { writeFile } from 'fs/promises'
-import stringify from 'json-stable-stringify'
+import { writeJSON } from './json.js'
 
 export function useLoggingInterceptor(session: AxiosInstance): void {
   let requestId = 0
   session.interceptors.request.use(
     async (config) => {
       ++requestId
-      await writeFile(
-        `request-${requestId}.json`,
-        stringify(
-          {
-            method: config.method,
-            url: config.url,
-            headers: config.headers,
-            data: config.data,
-          },
-          { space: 2 },
-        ),
-        { encoding: 'utf8' },
-      )
+      await writeJSON(`request-${requestId}.json`, {
+        method: config.method,
+        url: config.url,
+        headers: config.headers,
+        data: config.data,
+      })
       return config
     },
     async (error) => {
-      await writeFile(`request-${requestId}-error.json`, stringify(error, { space: 2 }), {
-        encoding: 'utf8',
-      })
+      await writeJSON(`request-${requestId}-error.json`, error)
       return error
     },
   )
@@ -42,9 +33,7 @@ export function useLoggingInterceptor(session: AxiosInstance): void {
       return res
     },
     async (error) => {
-      await writeFile(`request-${requestId}-response-error.json`, stringify(error, { space: 2 }), {
-        encoding: 'utf8',
-      })
+      await writeJSON(`request-${requestId}-response-error.json`, error)
       return error
     },
   )

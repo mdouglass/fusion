@@ -1,15 +1,4 @@
-export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | undefined
-  | JsonValue[]
-  | {
-      [field: string]: JsonValue
-    }
-export type JsonArray = JsonValue[]
-export type JsonObject = Record<string, JsonValue>
+import { JsonValue } from './json.js'
 
 export function decodeApex(json: JsonValue): JsonValue {
   const dict: Record<string, any> = {}
