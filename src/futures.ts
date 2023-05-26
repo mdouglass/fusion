@@ -1,11 +1,10 @@
 import axios, { AxiosResponse } from 'axios'
-import { useCookies, useLoggingInterceptor } from './axios-utils.js'
+import { useCookies, useLoggingInterceptor, useReferer } from './axios-utils.js'
 import { writeFile } from 'fs/promises'
 
 const baseUrl = 'https://futures.force.com'
 
 export async function login(): Promise<void> {
-
   const session = axios.create({
     baseURL: baseUrl,
     headers: {
@@ -17,6 +16,7 @@ export async function login(): Promise<void> {
   })
   useLoggingInterceptor(session)
   useCookies(session)
+  useReferer(session)
 
   // request the login page
   const pageLogin = await session.get('/PortalLogin')
@@ -40,9 +40,7 @@ export async function login(): Promise<void> {
     tid: 2,
     ctx: ctxLogin,
   }
-  const resLogin = await session.post(`/apexremote`, reqLogin, {
-    headers: { referer: 'https://futures.force.com/PortalLogin' },
-  })
+  const resLogin = await session.post(`/apexremote`, reqLogin)
   const homeData = JSON.parse(resLogin.data)
   const url = homeData[0].result.data.string_result
   if (!url) {
@@ -73,9 +71,7 @@ export async function login(): Promise<void> {
     tid: 8,
     ctx: ctxQuery,
   }
-  const resSchedule = await session.post(`/apexremote`, reqSchedule, {
-    headers: { referer: 'https://futures.force.com/PortalHome' },
-  })
+  const resSchedule = await session.post(`/apexremote`, reqSchedule)
 
   const reqTests = {
     action: 'PortalController',
@@ -93,9 +89,7 @@ export async function login(): Promise<void> {
     tid: 9,
     ctx: ctxQuery,
   }
-  const resTests = await session.post(`/apexremote`, reqTests, {
-    headers: { referer: 'https://futures.force.com/PortalHome' },
-  })
+  const resTests = await session.post(`/apexremote`, reqTests)
 
   function collapse(value: any, dict: Record<string, any>): any {
     if (typeof value === 'object' && value) {

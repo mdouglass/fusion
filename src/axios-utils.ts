@@ -1,5 +1,6 @@
-import { Axios, AxiosInstance } from 'axios'
+import { AxiosInstance } from 'axios'
 import { writeFile } from 'fs/promises'
+import stringify from 'json-stable-stringify'
 
 export function useLoggingInterceptor(session: AxiosInstance): void {
   let requestId = 0
@@ -8,36 +9,40 @@ export function useLoggingInterceptor(session: AxiosInstance): void {
       ++requestId
       await writeFile(
         `request-${requestId}.json`,
-        JSON.stringify({
-          method: config.method,
-          url: config.url,
-          data: config.data,
-        }),
+        stringify(
+          {
+            method: config.method,
+            url: config.url,
+            headers: config.headers,
+            data: config.data,
+          },
+          { space: 2 },
+        ),
         { encoding: 'utf8' },
       )
       return config
     },
     async (error) => {
-      await writeFile(`request-${requestId}-error.json`, JSON.stringify(error), {
+      await writeFile(`request-${requestId}-error.json`, stringify(error, { space: 2 }), {
         encoding: 'utf8',
       })
       return error
     },
   )
   session.interceptors.response.use(
-    async (response) => {
-      const ext = response.headers['content-type'].startsWith('application/json')
+    async (res) => {
+      const ext = res.headers['content-type'].startsWith('application/json')
         ? 'json'
-        : response.headers['content-type'].startsWith('text/html')
+        : res.headers['content-type'].startsWith('text/html')
         ? 'html'
         : 'txt'
-      await writeFile(`request-${requestId}-response.${ext}`, response.data ?? '', {
+      await writeFile(`request-${requestId}-response.${ext}`, res.data ?? '', {
         encoding: 'utf8',
       })
-      return response
+      return res
     },
     async (error) => {
-      await writeFile(`request-${requestId}-response-error.json`, JSON.stringify(error), {
+      await writeFile(`request-${requestId}-response-error.json`, stringify(error, { space: 2 }), {
         encoding: 'utf8',
       })
       return error
@@ -62,6 +67,15 @@ export function useCookies(session: AxiosInstance): void {
 
   session.interceptors.response.use((res) => {
     session.defaults.headers.cookie = append(res.headers['set-cookie'])
+    return res
+  })
+}
+
+export function useReferer(session: AxiosInstance): void {
+  session.interceptors.response.use((res) => {
+    if (res.headers['content-type'].startsWith('text/html')) {
+      session.defaults.headers.referer = res.request.res.responseUrl
+    }
     return res
   })
 }
