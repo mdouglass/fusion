@@ -5,20 +5,28 @@
   "description": "",
   "license": "MIT",
   "scripts": {
-    "format": "prettier --write src/**/*.ts",
     "compile": "tsc --build",
+    "format": "prettier --write src/**/*.ts",
+    "lint": "eslint src",
     "prestart": "npm run compile",
     "start": "node ./dist/main.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "axios": "^1.4.0",
+    "got": "^12.6.0",
     "ics": "^3.1.0",
-    "json-stable-stringify": "^1.0.2"
+    "json-stable-stringify": "^1.0.2",
+    "tough-cookie": "^4.1.2"
   },
   "devDependencies": {
+    "@eslint/js": "^8.41.0",
     "@types/json-stable-stringify": "^1.0.34",
     "@types/node": "^20.2.3",
+    "@types/tough-cookie": "^4.0.2",
+    "@typescript-eslint/eslint-plugin": "^5.59.7",
+    "@typescript-eslint/parser": "^5.59.7",
+    "eslint": "^8.41.0",
+    "eslint-config-prettier": "^8.8.0",
     "prettier": "^2.8.8",
     "typescript": "^5.0.4"
   }

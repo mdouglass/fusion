@@ -1,4 +1,4 @@
-import { JsonValue } from './json.js'
+import type { JsonValue } from './json.js'
 
 export function decodeApex(json: JsonValue): JsonValue {
   const dict: Record<string, any> = {}

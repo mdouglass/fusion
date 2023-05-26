@@ -1,28 +1,27 @@
-import axios, { AxiosResponse } from 'axios'
-import { useCookies, useLoggingInterceptor, useReferer } from './axios-utils.js'
+import { useLoggingInterceptor, useReferer } from './got-utils.js'
 import { decodeApex } from './salesforce.js'
 import * as ics from 'ics'
 import { writeJSON } from './json.js'
 import { writeText } from './text.js'
-
-const baseUrl = 'https://futures.force.com'
+import got from 'got'
+import { CookieJar } from 'tough-cookie'
 
 export async function login(): Promise<void> {
-  const session = axios.create({
-    baseURL: baseUrl,
+  const session = got.extend({
+    mutableDefaults: true,
+    cookieJar: new CookieJar(),
     headers: {
       // MSED - get version from package.json
       'user-agent': 'futures/0.1.0 (futures)',
       accept: 'text/html',
     },
-    responseType: 'text',
+    retry: { limit: 0 },
   })
   useLoggingInterceptor(session)
-  useCookies(session)
   useReferer(session)
 
   // request the login page
-  const pageLogin = await session.get('/PortalLogin')
+  const pageLogin = await session.get('https://futures.force.com/PortalLogin').text()
   const ctxLogin = extractCtx(pageLogin, 'process')
 
   // perform the login
@@ -43,8 +42,9 @@ export async function login(): Promise<void> {
     tid: 2,
     ctx: ctxLogin,
   }
-  const resLogin = await session.post(`/apexremote`, reqLogin)
-  const homeData = JSON.parse(resLogin.data)
+  const homeData = await session
+    .post('https://futures.force.com/apexremote', { json: reqLogin })
+    .json<any>()
   const url = homeData[0].result.data.string_result
   if (!url) {
     // seen this when my account is locked out b/c of too many login failures
@@ -55,7 +55,7 @@ export async function login(): Promise<void> {
   const pageHome1 = await session.get(url)
 
   // pageHome1 is a page with a JavaScript-based redirect, follow it manually to /PortalHome
-  const pageHome2 = await session.get('/PortalHome')
+  const pageHome2 = await session.get('/PortalHome').text()
   const ctxQuery = extractCtx(pageHome2, 'query')
 
   // session schedule
@@ -75,7 +75,11 @@ export async function login(): Promise<void> {
     tid: 8,
     ctx: ctxQuery,
   }
-  const resSchedule = await session.post(`/apexremote`, reqSchedule)
+  const resSchedule = await session
+    .post('https://futures.force.com/apexremote', {
+      json: reqSchedule,
+    })
+    .json<any>()
 
   const reqTests = {
     action: 'PortalController',
@@ -93,7 +97,9 @@ export async function login(): Promise<void> {
     tid: 9,
     ctx: ctxQuery,
   }
-  const resTests = await session.post(`/apexremote`, reqTests)
+  const resTests = await session
+    .post('https://futures.force.com/apexremote', { json: reqTests })
+    .json()
 
   function toSession(s: any): ics.EventAttributes {
     const toDateArray = (ms: number) => {
@@ -116,9 +122,7 @@ export async function login(): Promise<void> {
     }
   }
 
-  const sessions = (
-    decodeApex(JSON.parse(resSchedule.data)) as any
-  )[0].result.data.query_results.map(toSession)
+  const sessions = (decodeApex(resSchedule) as any)[0].result.data.query_results.map(toSession)
   await writeJSON('sessions.json', sessions)
 
   const { error, value } = ics.createEvents(sessions)
@@ -126,18 +130,16 @@ export async function login(): Promise<void> {
     throw error
   }
   await writeText('sessions.ics', value ?? '')
-
-  // const tests = JSON.parse(resTests.data)[0].result.data.query_results as ITest[]
 }
 
-function extractCtx(page: AxiosResponse<any, any>, name: string): unknown {
-  const ctxRaw = new RegExp(`{"name":"${name}"[^}]*}`).exec(page.data)?.[0]
+function extractCtx(html: string, name: string): unknown {
+  const ctxRaw = new RegExp(`{"name":"${name}"[^}]*}`).exec(html)?.[0]
   if (ctxRaw === undefined) {
     throw new Error(`Could not find ${name} ctx`)
   }
   const ctx = JSON.parse(ctxRaw)
 
-  const vid = /"vid":"([^"]*)"/.exec(page.data)?.[1]
+  const vid = /"vid":"([^"]*)"/.exec(html)?.[1]
   if (vid === undefined) {
     throw new Error('vid not found')
   }
