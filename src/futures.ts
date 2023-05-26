@@ -1,6 +1,7 @@
 import axios, { AxiosResponse } from 'axios'
 import { useCookies, useLoggingInterceptor, useReferer } from './axios-utils.js'
 import { writeFile } from 'fs/promises'
+import { decodeApex } from './salesforce.js'
 
 const baseUrl = 'https://futures.force.com'
 
@@ -44,13 +45,14 @@ export async function login(): Promise<void> {
   const homeData = JSON.parse(resLogin.data)
   const url = homeData[0].result.data.string_result
   if (!url) {
-    throw new Error('Authentication failed successfully') // seen this when my account is locked out b/c of too many login failures
+    // seen this when my account is locked out b/c of too many login failures
+    throw new Error('Authentication failed successfully')
   }
 
-  // request the page login redirects you to
+  // request the page login redirects you to (this allows cookies to be set)
   const pageHome1 = await session.get(url)
 
-  // the login page sends you to a page that has a JavaScript-based redirect, follow it manually to /PortalHome
+  // pageHome1 is a page with a JavaScript-based redirect, follow it manually to /PortalHome
   const pageHome2 = await session.get('/PortalHome')
   const ctxQuery = extractCtx(pageHome2, 'query')
 
@@ -91,41 +93,6 @@ export async function login(): Promise<void> {
   }
   const resTests = await session.post(`/apexremote`, reqTests)
 
-  function collapse(value: any, dict: Record<string, any>): any {
-    if (typeof value === 'object' && value) {
-      if ('s' in value && 'v' in value) {
-        dict[value.s] = value.v
-        return collapse(value.v, dict)
-      } else if (Array.isArray(value)) {
-        for (let i = 0; i < value.length; i++) {
-          value[i] = collapse(value[i], dict)
-        }
-      } else {
-        for (const k in value) {
-          value[k] = collapse(value[k], dict)
-        }
-      }
-    }
-    return value
-  }
-
-  function expand(value: any, dict: Record<string, any>): any {
-    if (typeof value === 'object' && value) {
-      if ('r' in value) {
-        return dict[value.r]
-      } else if (Array.isArray(value)) {
-        for (let i = 0; i < value.length; i++) {
-          value[i] = expand(value[i], dict)
-        }
-      } else {
-        for (const k in value) {
-          value[k] = expand(value[k], dict)
-        }
-      }
-    }
-    return value
-  }
-
   function toSession(s: any): any {
     return {
       course: s.Class__r.Course__r.Name,
@@ -134,11 +101,9 @@ export async function login(): Promise<void> {
     }
   }
 
-  const dict: Record<string, any> = {}
-  const sessions = expand(
-    collapse(JSON.parse(resSchedule.data)[0].result.data.query_results, dict),
-    dict,
-  ).map(toSession)
+  const sessions = (
+    decodeApex(JSON.parse(resSchedule.data)) as any
+  )[0].result.data.query_results.map(toSession)
   await writeFile('sessions.json', JSON.stringify(sessions), { encoding: 'utf8' })
 
   // const tests = JSON.parse(resTests.data)[0].result.data.query_results as ITest[]
