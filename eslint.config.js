@@ -44,6 +44,12 @@ export default [
           },
         },
       ],
+      'ts/no-use-before-define': [
+        'error',
+        {
+          functions: false
+        }
+      ],
       'ts/strict-boolean-expressions': [
         'error',
         { allowNullableBoolean: true, allowNullableObject: true },
