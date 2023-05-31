@@ -7,6 +7,10 @@ import got from 'got'
 import { CookieJar } from 'tough-cookie'
 
 export async function login(): Promise<void> {
+  if (!process.env.USER || !process.env.PASSWORD) {
+    throw new Error('USER and PASSWORD environment variables must be set')
+  }
+
   const session = got.extend({
     mutableDefaults: true,
     cookieJar: new CookieJar(),
@@ -55,7 +59,7 @@ export async function login(): Promise<void> {
   const pageHome1 = await session.get(url)
 
   // pageHome1 is a page with a JavaScript-based redirect, follow it manually to /PortalHome
-  const pageHome2 = await session.get('/PortalHome').text()
+  const pageHome2 = await session.get('https://futures.force.com/PortalHome').text()
   const ctxQuery = extractCtx(pageHome2, 'query')
 
   // session schedule
@@ -102,7 +106,7 @@ export async function login(): Promise<void> {
     .json()
 
   function toSession(s: any): ics.EventAttributes {
-    const toDateArray = (ms: number) => {
+    const toDateArray = (ms: number): [number, number, number, number, number] => {
       const d = new Date(ms)
       return [
         d.getUTCFullYear(),

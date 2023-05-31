@@ -9,5 +9,6 @@ async function main(): Promise<void> {
 try {
   await main()
 } catch (e) {
-  console.log((e as Error).stack)
+  // eslint-disable-next-line no-console
+  console.error((e as Error).stack)
 }

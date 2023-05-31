@@ -1,3 +1,4 @@
+import type { JsonValue } from './json.js'
 import { writeJSON } from './json.js'
 import { writeText } from './text.js'
 import type { Got, RequestError, Response } from 'got'
@@ -31,7 +32,7 @@ export function useLoggingInterceptor(session: Got): void {
       ],
       beforeError: [
         async (error): Promise<RequestError> => {
-          await writeJSON(`request-${requestId}-error.json`, error as any)
+          await writeJSON(`request-${requestId}-error.json`, error as unknown as JsonValue)
           return error
         },
       ],

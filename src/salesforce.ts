@@ -1,7 +1,7 @@
 import type { JsonValue } from './json.js'
 
 export function decodeApex(json: JsonValue): JsonValue {
-  const dict: Record<string, any> = {}
+  const dict: Record<string, JsonValue> = {}
 
   function collapse(value: JsonValue): JsonValue {
     if (typeof value === 'object' && value) {
