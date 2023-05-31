@@ -13,6 +13,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.342.0",
     "got": "^12.6.0",
     "ics": "^3.1.0",
     "json-stable-stringify": "^1.0.2",

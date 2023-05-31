@@ -5,10 +5,14 @@ import { writeJSON } from './json.js'
 import { writeText } from './text.js'
 import got from 'got'
 import { CookieJar } from 'tough-cookie'
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 
 export async function login(): Promise<void> {
   if (!process.env.USER || !process.env.PASSWORD) {
     throw new Error('USER and PASSWORD environment variables must be set')
+  }
+  if (!process.env.B2_KEY_ID || !process.env.B2_APPLICATION_KEY) {
+    throw new Error('B2_KEY_ID and B2_APPLICATION_KEY environment variables must be set')
   }
 
   const session = got.extend({
@@ -134,6 +138,28 @@ export async function login(): Promise<void> {
     throw error
   }
   await writeText('sessions.ics', value ?? '')
+
+  const REGION = 'us-west-001'
+  const b2 = new S3Client({
+    endpoint: `https://s3.${REGION}.backblazeb2.com`,
+    region: REGION,
+    credentials: {
+      // Must have both read and write permissions on BUCKET_NAME
+      accessKeyId: process.env.B2_KEY_ID,
+      secretAccessKey: process.env.B2_APPLICATION_KEY,
+    },
+  })
+
+  console.log('updating to douglass-public')
+  await b2.send(
+    new PutObjectCommand({
+      Bucket: 'douglass-public',
+      Key: 'ics/sessions.ics',
+      Body: value,
+      ContentType: 'text/calendar',
+    }),
+  )
+  console.log('done')
 }
 
 function extractCtx(html: string, name: string): unknown {
