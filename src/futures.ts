@@ -96,7 +96,7 @@ export async function login(): Promise<void> {
       {
         parameters: {
           query:
-            "SELECT Id, Assessment__c, Attendance_Status__c, External_ID__c, Campus__c, Test_Date_Time__c, Term__c, Proctor_Instructor__c, Student__c, Proctor_Instructor__r.Name, Proctor_Instructor__r.FirstName, Proctor_Instructor__r.LastName, Student__r.Name, Student__r.FirstName, Student__r.LastName FROM Assessment__c WHERE Date__c >= 2023-05-25 AND Date__c < 2023-05-26 AND Student__c IN ('0035Y00005WVGQdQAP') ORDER BY Test_Date_Time__c ASC",
+            "SELECT Id, Assessment__c, Attendance_Status__c, External_ID__c, Campus__c, Test_Date_Time__c, Term__c, Proctor_Instructor__c, Student__c, Proctor_Instructor__r.Name, Proctor_Instructor__r.FirstName, Proctor_Instructor__r.LastName, Student__r.Name, Student__r.FirstName, Student__r.LastName FROM Assessment__c WHERE Date__c >= 2023-05-25 AND Date__c < 2023-08-31 AND Student__c IN ('0035Y00005WVGQdQAP') ORDER BY Test_Date_Time__c ASC",
         },
         variables: { execution_index: '1' },
       },
@@ -121,8 +121,21 @@ export async function login(): Promise<void> {
       ] as [number, number, number, number, number]
     }
 
+    const toSessionNumberTrailer = () => {
+      const sessionNumberRaw = s.Session_Number__c
+      if (typeof sessionNumberRaw !== 'string') {
+        return ''
+      }
+      const sessionNumber = Number.parseInt(sessionNumberRaw, 10)
+      if (Number.isNaN(sessionNumber)) {
+        return ` ${sessionNumberRaw}`
+      } else {
+        return ` #${sessionNumber}`
+      }
+    }
+
     return {
-      title: s.Class__r.Course__r.Name,
+      title: s.Class__r.Course__r.Name + toSessionNumberTrailer(),
       start: toDateArray(s.Starting__c),
       startInputType: 'utc',
       end: toDateArray(s.Ending__c),
