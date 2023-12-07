@@ -1,13 +1,9 @@
-import { createSession } from './got-utils.js'
-
-export async function login(user: string, password: string): Promise<string> {
-  const session = createSession()
-
-  const calendar = await session
-    .get(
+export async function login(): Promise<string> {
+  const calendar = await (
+    await fetch(
       'https://api.fusionacademy.com/api/schedule/webcal?studentIds=0036T00004MKNYDQA5&key=61a70d35a522601be6e8f59cd09518136e3967da14ebae96b6dad58abaf54df0',
     )
-    .text()
+  ).text()
 
   // transform the calendar to the way we want it
   const vcal = fromICS(calendar)

@@ -1,14 +1,18 @@
 {
   "compilerOptions": {
-    "lib": ["es2023"],
-    "target": "es2022",
-    "module": "Node16",
-    "moduleResolution": "node16",
+    "lib": ["es2021"],
+    "target": "es2021",
+
+    "module": "es2022",
+    "moduleResolution": "node",
+		"resolveJsonModule": true,
+
+    "types": ["@cloudflare/workers-types/2023-07-01"],
 
     "skipLibCheck": true,
+		"isolatedModules": true,
+		"allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
-
-    "outDir": "./dist",
 
     "strict": true,
     "noImplicitAny": true,
@@ -28,8 +32,8 @@
     "noImplicitOverride": true,
     "noPropertyAccessFromIndexSignature": false,
     "allowUnusedLabels": true,
-    "allowUnreachableCode": true
-  },
+    "allowUnreachableCode": true,
 
-  "include": ["./src"]
+    "noEmit": true,
+  },
 }
