@@ -19,7 +19,13 @@ export async function login(user: string, password: string): Promise<string> {
   delete vcal.properties['X-WR-CALDESC']
   delete vcal.properties['X-WR-CALNAME']
   vcal.properties.VEVENT = (vcal.properties.VEVENT as CalendarObject[])
-    .filter((vevent) => true)
+    .filter((vevent) => {
+      // skip cancelled classes
+      if (vevent.properties.STATUS === 'CANCELLED') {
+        return false
+      }
+      return true
+    })
     .map((vevent) => {
       // trim 10m off everything
       if (
@@ -28,17 +34,9 @@ export async function login(user: string, password: string): Promise<string> {
       ) {
         vevent.properties.DTEND = vevent.properties.DTEND.replace(/3000Z$/, '2000Z')
       }
-      // convert "Futures Conversion" to something useful
-      if (
-        typeof vevent.properties.SUMMARY === 'string' &&
-        vevent.properties.SUMMARY.startsWith('Futures Conversion') &&
-        vevent.properties.DESCRIPTION
-      ) {
-        vevent.properties.SUMMARY = vevent.properties.DESCRIPTION
-        delete vevent.properties.DESCRIPTION
-      }
-      if (vevent.properties.SUMMARY === 'Homework Cafe (Juliette)') {
-        vevent.properties.SUMMARY = 'Homework Cafe'
+      // remove any trailing " (Juliette)"
+      if (typeof vevent.properties.SUMMARY === 'string') {
+        vevent.properties.SUMMARY = vevent.properties.SUMMARY.replace(/ \(Juliette\)$/, '')
       }
       // add a location
       vevent.properties.LOCATION = '30700 Russell Ranch Rd #180, Westlake Village, CA 91362'
