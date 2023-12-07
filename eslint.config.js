@@ -1,8 +1,8 @@
-import globals from 'globals'
-import typescriptParser from '@typescript-eslint/parser'
-import ts from '@typescript-eslint/eslint-plugin'
-import js from '@eslint/js'
-import prettier from 'eslint-config-prettier'
+const globals = require('globals')
+const typescriptParser = require('@typescript-eslint/parser')
+const ts = require('@typescript-eslint/eslint-plugin')
+const js = require('@eslint/js')
+const prettier = require('eslint-config-prettier')
 
 // some plugins don't support flat config and we need to remap their rules
 function remap(rules, oldPrefix, newPrefix) {
@@ -14,7 +14,7 @@ function remap(rules, oldPrefix, newPrefix) {
   )
 }
 
-export default [
+module.exports = [
   js.configs.recommended,
   { rules: remap(ts.configs.all.rules, '@typescript-eslint', 'ts') },
   { rules: remap(prettier.rules, '@typescript-eslint', 'ts') },
@@ -30,15 +30,13 @@ export default [
         },
       ],
       'ts/no-magic-numbers': 'off',
-      // MSED turn back on
-      'ts/no-explicit-any': 'warn',
+      'ts/no-explicit-any': 'error',
       'ts/naming-convention': [
         'error',
         {
           selector: 'property',
           format: ['strictCamelCase'],
           filter: {
-            // you can expand this regex as you find more cases that require quoting that you want to allow
             regex: '[-_ ]',
             match: false,
           },
@@ -47,9 +45,10 @@ export default [
       'ts/no-use-before-define': [
         'error',
         {
-          functions: false
-        }
+          functions: false,
+        },
       ],
+      'ts/sort-type-constituents': 'off',
       'ts/strict-boolean-expressions': [
         'error',
         { allowNullableBoolean: true, allowNullableObject: true },
@@ -63,7 +62,7 @@ export default [
       parser: typescriptParser,
       parserOptions: {
         project: './tsconfig.json',
-        sourceType: 'module',
+        sourceType: 'script',
       },
     },
     plugins: {

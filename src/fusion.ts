@@ -8,7 +8,7 @@ export async function login(): Promise<string> {
   // transform the calendar to the way we want it
   const vcal = fromICS(calendar)
   vcal.properties.NAME = 'Fusion Academy'
-  vcal.properties['PRODID'] = 'fusion/0.1.0' // take from package.json
+  vcal.properties.PRODID = 'fusion/0.1.0' // take from package.json
   delete vcal.properties.DESCRIPTION
   delete vcal.properties['REFRESH-INTERVAL']
   delete vcal.properties['X-PUBLISHED-TTL']
@@ -45,7 +45,7 @@ export async function login(): Promise<string> {
   return toICS(vcal)
 }
 
-type CalendarObject = {
+interface CalendarObject {
   type: string
   properties: Record<string, string | CalendarObject[] | undefined>
 }
@@ -64,9 +64,9 @@ function fromICS(calendar: string): CalendarObject {
         const obj = stack.pop()
         if (!obj) throw new Error('Unexpected END')
 
-        const parent = stack[stack.length - 1]
-        if (!parent) throw new Error('Unbalanced BEGIN/END')
+        if (stack.length === 0) throw new Error('Unbalanced BEGIN/END')
 
+        const parent = stack[stack.length - 1]
         const collection = (parent.properties[obj.type] ??= [])
         if (!Array.isArray(collection)) throw new Error('Parent cannot collect ' + obj.type)
 
@@ -75,10 +75,12 @@ function fromICS(calendar: string): CalendarObject {
         }
         break
       }
-      default:
+      default: {
+        if (stack.length === 0) throw new Error('Unexpected property')
         const obj = stack[stack.length - 1]
-        if (!obj) throw new Error('Unexpected property')
         obj.properties[key] = value
+        break
+      }
     }
   }
 
@@ -100,7 +102,7 @@ function toICS(calendar: CalendarObject): string {
       str += key + ':' + value + '\r\n'
     }
   }
-  for (const [key, value] of Object.entries(calendar.properties)) {
+  for (const value of Object.values(calendar.properties)) {
     if (Array.isArray(value)) {
       for (const child of value) {
         str += toICS(child)
